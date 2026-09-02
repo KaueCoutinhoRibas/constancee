@@ -44,7 +44,8 @@ const deleteLocal = async (store: LocalStore, id: string) => {
     case 'habits': await StorageService.deleteHabitPermanently(id, { emitSync: false }); break;
     case 'tasks': await StorageService.deleteTaskPermanently(id, { emitSync: false }); break;
     case 'workoutTemplates': await StorageService.deleteWorkoutTemplate(id, { emitSync: false }); break;
-    case 'workoutSessions': break;
+    case 'workoutSessions':
+    break;
     case 'goals': await StorageService.deleteGoalPermanently(id, { emitSync: false }); break;
   }
 };

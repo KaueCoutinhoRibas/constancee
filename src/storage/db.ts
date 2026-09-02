@@ -128,9 +128,9 @@ export const StorageService = {
   },
 
   async saveTask(task: Task, options?: { emitSync?: boolean }): Promise<void> {
-    const db = await getDB();
-    await db.put('tasks', task);
-    await markLocalChange('tasks', task.id, task.updatedAt, options?.emitSync !== false);
+     const db = await getDB();
+     await db.put('tasks', task);
+     await markLocalChange('tasks', task.id, undefined, options?.emitSync !== false);
   },
 
   async deleteTaskPermanently(taskId: string, options?: { emitSync?: boolean }): Promise<void> {
@@ -148,14 +148,14 @@ export const StorageService = {
   async saveWorkoutTemplate(template: WorkoutTemplate, options?: { emitSync?: boolean }): Promise<void> {
     const db = await getDB();
     await db.put('workoutTemplates', template);
-    await markLocalChange('workoutTemplates', template.id, undefined, options?.emitSync !== false);
-  },
+    await markLocalChange('workout_templates', template.id, undefined, options?.emitSync !== false);
+},
 
   async deleteWorkoutTemplate(templateId: string, options?: { emitSync?: boolean }): Promise<void> {
     const db = await getDB();
     await db.delete('workoutTemplates', templateId);
-    await markLocalChange('workoutTemplates', templateId, new Date().toISOString(), options?.emitSync !== false);
-  },
+    await markLocalChange('workout_templates', templateId, new Date().toISOString(), options?.emitSync !== false);
+},
 
   async getWorkoutSessions(): Promise<WorkoutSession[]> {
     const db = await getDB();
@@ -165,8 +165,8 @@ export const StorageService = {
   async saveWorkoutSession(session: WorkoutSession, options?: { emitSync?: boolean }): Promise<void> {
     const db = await getDB();
     await db.put('workoutSessions', session);
-    await markLocalChange('workoutSessions', session.id, session.updatedAt, options?.emitSync !== false);
-  },
+    await markLocalChange('workout_sessions', session.id, undefined, options?.emitSync !== false);
+},
 
   // === METAS ===
   async getGoals(): Promise<Goal[]> {

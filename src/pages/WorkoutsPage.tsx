@@ -171,6 +171,7 @@ interface SessionModalProps {
 const SessionModal: React.FC<SessionModalProps> = ({ session, template, previousSessions, onClose, onSave, onFinish }) => {
   const [draft, setDraft] = useState<WorkoutSession>(session);
   const [saving, setSaving] = useState(false);
+  const [showFinishConfirm, setShowFinishConfirm] = useState(false);
 
   const lastForExercise = (exerciseId: string): ExerciseLog | undefined => {
     const found = previousSessions
@@ -214,6 +215,7 @@ const SessionModal: React.FC<SessionModalProps> = ({ session, template, previous
     setSaving(true);
     await onFinish({ ...draft, status: 'completed', updatedAt: new Date().toISOString() });
     setSaving(false);
+    setShowFinishConfirm(false);
   };
 
   return (
@@ -247,7 +249,20 @@ const SessionModal: React.FC<SessionModalProps> = ({ session, template, previous
           })}
         </div>
 
-        <button onClick={finish} disabled={saving} className="w-full mt-5 py-3 rounded-xl bg-brand hover:bg-brand-hover text-white text-sm font-bold transition-all active:scale-[0.99]">{saving ? 'Salvando...' : 'Finalizar treino'}</button>
+        <button onClick={() => setShowFinishConfirm(true)} disabled={saving} className="w-full mt-5 py-3 rounded-xl bg-brand hover:bg-brand-hover text-white text-sm font-bold transition-all active:scale-[0.99]">{saving ? 'Salvando...' : 'Finalizar treino'}</button>
+
+        {showFinishConfirm && (
+          <div data-swipe-ignore="true" className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+            <div className="w-full max-w-sm bg-[#121215] border border-surface-border rounded-2xl p-5 shadow-2xl">
+              <h3 className="text-base font-bold text-gray-100">Finalizar treino?</h3>
+              <p className="text-xs text-gray-400 mt-2 leading-relaxed">Tem certeza que você terminou o treino? Depois de finalizar, ele será registrado como concluído.</p>
+              <div className="flex gap-2 justify-end mt-5">
+                <button type="button" onClick={() => setShowFinishConfirm(false)} className="button-secondary">Cancelar</button>
+                <button type="button" onClick={() => void finish()} disabled={saving} className="button-primary">{saving ? 'Salvando...' : 'Sim, finalizar'}</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -25,7 +25,6 @@ export const WeekView: React.FC<WeekViewProps> = ({
     const taskId = e.dataTransfer.getData('taskId');
     if (taskId) {
       onDropTaskOnDate(taskId, targetDate);
-      onSelectDate(targetDate); // <- Altera visualmente a visualização para o dia de destino na hora
     }
   };
 

@@ -20,6 +20,8 @@ import {
   Calendar,
   Edit2,
   Sparkles,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react';
 
 const getTimesPerDay = (habit: Habit) =>
@@ -64,9 +66,10 @@ export const HabitsPage: React.FC = () => {
     try {
       const data = await StorageService.getHabits();
 
-      const updated = data.map((habit) => {
+      const updated = data.map((habit, index) => {
         const normalized: Habit = {
           ...habit,
+          order: typeof habit.order === 'number' ? habit.order : index,
           timesPerDay: Math.max(
             1,
             habit.timesPerDay || 1
@@ -96,7 +99,7 @@ export const HabitsPage: React.FC = () => {
         };
       });
 
-      setHabits(updated);
+      setHabits([...updated].sort((a, b) => a.order - b.order));
     } catch (err) {
       console.error(
         'Erro ao carregar hábitos:',
@@ -112,11 +115,13 @@ export const HabitsPage: React.FC = () => {
   }, []);
 
   const todaysHabits = useMemo(() => {
-    return habits.filter(
-      (habit) =>
-        !habit.archived &&
-        isHabitScheduledForDate(habit, today)
-    );
+    return habits
+      .filter(
+        (habit) =>
+          !habit.archived &&
+          isHabitScheduledForDate(habit, today)
+      )
+      .sort((a, b) => a.order - b.order);
   }, [habits, today]);
 
   const upcomingHabitGroups = useMemo(() => {
@@ -141,6 +146,8 @@ export const HabitsPage: React.FC = () => {
           date >= habit.startDate &&
           isHabitScheduledForDate(habit, date)
       );
+
+      scheduled.sort((a, b) => a.order - b.order);
 
       if (scheduled.length > 0) {
         groups.push({
@@ -317,6 +324,7 @@ export const HabitsPage: React.FC = () => {
         streak: 0,
         bestStreak: 0,
         completedDates: [],
+        order: habits.length > 0 ? Math.max(...habits.map((item) => item.order ?? 0)) + 1 : 0,
         completionCounts: {},
         timesPerDay: Math.max(
           1,
@@ -383,6 +391,30 @@ export const HabitsPage: React.FC = () => {
     await StorageService.deleteHabitPermanently(
       habitId
     );
+  };
+
+  const moveHabit = async (habitId: string, direction: -1 | 1, siblings: Habit[]) => {
+    const ordered = [...siblings].sort((a, b) => a.order - b.order);
+    const index = ordered.findIndex((habit) => habit.id === habitId);
+    const nextIndex = index + direction;
+    if (index < 0 || nextIndex < 0 || nextIndex >= ordered.length) return;
+
+    const current = ordered[index];
+    const target = ordered[nextIndex];
+    const currentOrder = current.order;
+    const targetOrder = target.order;
+
+    const updated = habits.map((habit) => {
+      if (habit.id === current.id) return { ...habit, order: targetOrder };
+      if (habit.id === target.id) return { ...habit, order: currentOrder };
+      return habit;
+    });
+
+    setHabits(updated.sort((a, b) => a.order - b.order));
+    await Promise.all([
+      StorageService.saveHabit(updated.find((habit) => habit.id === current.id)!),
+      StorageService.saveHabit(updated.find((habit) => habit.id === target.id)!),
+    ]);
   };
 
   const renderCompletion = (
@@ -625,6 +657,25 @@ export const HabitsPage: React.FC = () => {
                         </span>
                       </div>
                     )}
+
+                    <div className="flex items-center gap-0.5">
+                      <button
+                        onClick={() => void moveHabit(habit.id, -1, todaysHabits)}
+                        disabled={todaysHabits[0]?.id === habit.id}
+                        className="p-1 text-gray-600 hover:text-gray-200 disabled:opacity-20 rounded-lg transition-colors"
+                        title="Subir hábito"
+                      >
+                        <ChevronUp size={15} />
+                      </button>
+                      <button
+                        onClick={() => void moveHabit(habit.id, 1, todaysHabits)}
+                        disabled={todaysHabits[todaysHabits.length - 1]?.id === habit.id}
+                        className="p-1 text-gray-600 hover:text-gray-200 disabled:opacity-20 rounded-lg transition-colors"
+                        title="Descer hábito"
+                      >
+                        <ChevronDown size={15} />
+                      </button>
+                    </div>
 
                     <button
                       onClick={() => {

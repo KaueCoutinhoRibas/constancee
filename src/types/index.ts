@@ -16,6 +16,8 @@ export interface Habit {
   streak: number;
   bestStreak: number;
   completedDates: string[];
+  /** Ordem manual exibida na lista de hábitos. */
+  order: number;
 
   timesPerDay: number;
   completionCounts?: Record<string, number>;

@@ -92,6 +92,16 @@ const getDayScore = (
   };
 };
 
+const toggleNotifications = async (enabled: boolean) => {
+  if (!enabled) return false;
+  if (typeof window === 'undefined' || !("Notification" in window)) {
+    return false;
+  }
+  if (Notification.permission === 'granted') return true;
+  const permission = await Notification.requestPermission();
+  return permission === 'granted';
+};
+
 export const ProfilePage: React.FC = () => {
   const [profile, setProfile] = useState<UserProfile>(DEFAULT_PROFILE);
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
@@ -324,7 +334,23 @@ export const ProfilePage: React.FC = () => {
           </button>
           {settingsOpen && <div className="p-3 bg-surface-bg/50 flex gap-2"><button onClick={() => void updateSettings({ theme: 'dark' })} className={`flex-1 py-2.5 rounded-xl text-xs font-semibold ${settings.theme === 'dark' ? 'bg-brand text-white' : 'bg-surface-hover text-gray-400'}`}><Moon size={14} className="inline mr-1.5" />Escuro</button><button onClick={() => void updateSettings({ theme: 'light' })} className={`flex-1 py-2.5 rounded-xl text-xs font-semibold ${settings.theme === 'light' ? 'bg-brand text-white' : 'bg-surface-hover text-gray-400'}`}><Sun size={14} className="inline mr-1.5" />Claro</button></div>}
 
-          <button onClick={() => void updateSettings({ notifications: !settings.notifications })} className="w-full p-3.5 flex items-center justify-between text-sm text-gray-300 hover:bg-surface-hover transition-colors"><div className="flex items-center gap-3"><Bell size={18} className="text-gray-400" /><span>Notificações</span></div><div className={`w-9 h-5 rounded-full p-0.5 transition-colors ${settings.notifications ? 'bg-brand' : 'bg-surface-muted'}`}><div className={`w-4 h-4 rounded-full bg-white transition-transform ${settings.notifications ? 'translate-x-4' : ''}`} /></div></button>
+          <button
+            onClick={() => void (async () => {
+              const nextEnabled = !settings.notifications;
+              if (nextEnabled) {
+                const granted = await toggleNotifications(true);
+                if (!granted) {
+                  setMessage('Permita as notificações do navegador para ativá-las.');
+                  return;
+                }
+              }
+              await updateSettings({ notifications: nextEnabled });
+            })()}
+            className="w-full p-3.5 flex items-center justify-between text-sm text-gray-300 hover:bg-surface-hover transition-colors"
+          >
+            <div className="flex items-center gap-3"><Bell size={18} className="text-gray-400" /><span>Notificações</span></div>
+            <div className={`w-9 h-5 rounded-full p-0.5 transition-colors ${settings.notifications ? 'bg-brand' : 'bg-surface-muted'}`}><div className={`w-4 h-4 rounded-full bg-white transition-transform ${settings.notifications ? 'translate-x-4' : ''}`} /></div>
+          </button>
 
           <button onClick={() => setBackupOpen((value) => !value)} className="w-full p-3.5 flex items-center justify-between text-sm text-gray-300 hover:bg-surface-hover transition-colors"><div className="flex items-center gap-3"><HardDrive size={18} className="text-gray-400" /><span>Backup & Restauração</span></div><ChevronRight size={15} className={backupOpen ? 'rotate-90 transition-transform text-gray-500' : 'text-gray-500'} /></button>
           {backupOpen && <div className="p-3 bg-surface-bg/50 space-y-2"><button onClick={() => void exportBackup()} className="w-full flex items-center justify-between p-3 rounded-xl bg-surface-hover text-xs text-gray-300 hover:text-white"><span className="flex items-center gap-2"><Download size={15} />Exportar backup</span><span className="text-[10px] text-gray-600">.json</span></button><button onClick={() => backupInputRef.current?.click()} className="w-full flex items-center justify-between p-3 rounded-xl bg-surface-hover text-xs text-gray-300 hover:text-white"><span className="flex items-center gap-2"><Upload size={15} />Importar backup</span><span className="text-[10px] text-gray-600">.json</span></button><input ref={backupInputRef} type="file" accept="application/json,.json" className="hidden" onChange={(e) => void importBackup(e.target.files?.[0])} /></div>}

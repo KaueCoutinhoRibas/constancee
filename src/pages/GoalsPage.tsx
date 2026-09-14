@@ -1,5 +1,5 @@
 import React,{useEffect,useMemo,useState} from 'react';
-import { Archive, Check, Edit3, Plus, Target, Trash2, RotateCcw, Trophy, ChevronRight } from 'lucide-react';
+import { Archive, Check, Edit3, Plus, Target, Trash2, RotateCcw, Trophy } from 'lucide-react';
 import { Header } from '../components/common/Header';
 import { GoalFormModal } from '../components/goals/GoalFormModal';
 import { StorageService } from '../storage/db';
@@ -12,7 +12,7 @@ const formatValue=(value:number,goal:Goal)=>goal.measurement==='currency'?`R$ ${
 
 export const GoalsPage:React.FC=()=>{
  const[goals,setGoals]=useState<Goal[]>([]);const[habits,setHabits]=useState<Habit[]>([]);const[tasks,setTasks]=useState<Task[]>([]);const[sessions,setSessions]=useState<WorkoutSession[]>([]);const[tab,setTab]=useState<GoalTab>('active');const[editing,setEditing]=useState<Goal|null>(null);const[showForm,setShowForm]=useState(false);const[loading,setLoading]=useState(true);
- const load=async()=>{setLoading(true);try{const [g,h,t,s]=await Promise.all([StorageService.getGoals(),StorageService.getHabits(),StorageService.getTasks(),StorageService.getWorkoutSessions()]);const data={habits:h,tasks:t,sessions:s};const normalized=g.map(goal=>{const progress=calculateGoalProgress(goal,data);return {...goal,progress,status:progress>=100?'completed':goal.status==='completed'&&progress<100?'active':goal.status};});setGoals(normalized.sort((a,b)=>b.createdAt.localeCompare(a.createdAt)));setHabits(h);}finally{setLoading(false);}};
+ const load=async()=>{setLoading(true);try{const [g,h,t,s]=await Promise.all([StorageService.getGoals(),StorageService.getHabits(),StorageService.getTasks(),StorageService.getWorkoutSessions()]);const data={habits:h,tasks:t,sessions:s};const normalized=g.map(goal=>{const progress=calculateGoalProgress(goal,data);return {...goal,progress,status:progress>=100?'completed':goal.status==='completed'&&progress<100?'active':goal.status};});setGoals(normalized.sort((a,b)=>b.createdAt.localeCompare(a.createdAt)));setHabits(h);setTasks(t);setSessions(s);}finally{setLoading(false);}};
  useEffect(()=>{void load();},[]);
  const visible=useMemo(()=>goals.filter(g=>g.status===tab),[goals,tab]);
  const saveGoal=async(goal:Goal)=>{const progress=calculateGoalProgress(goal,{habits,tasks,sessions});const normalized={...goal,progress:goal.trackingSource&&goal.trackingSource!=='manual'?progress:goal.progress};await StorageService.saveGoal(normalized);await load();};

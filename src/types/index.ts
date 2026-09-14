@@ -105,10 +105,21 @@ export interface UserProfile {
   createdAt: string;
 }
 
+export interface NotificationPreferences {
+  habits: boolean;
+  tasks: boolean;
+  workouts: boolean;
+  goals: boolean;
+  habitsTime: string;
+  workoutsTime: string;
+  goalsTime: string;
+}
+
 export interface UserSettings {
   theme: 'dark' | 'light';
   notifications: boolean;
   compactView: boolean;
+  notificationPreferences?: NotificationPreferences;
   /** Primeiro dia em que o Constância foi utilizado. */
   firstUseDate?: string;
 }

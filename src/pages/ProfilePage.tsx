@@ -14,11 +14,12 @@ import {
   User as UserIcon,
   LogOut,
 } from 'lucide-react';
-import type { Habit, Task, UserProfile, UserSettings, WorkoutSession, WorkoutTemplate } from '../types';
+import type { Habit, Task, UserProfile, UserSettings, WorkoutSession, WorkoutTemplate, NotificationPreferences } from '../types';
 import { StorageService, type BackupData } from '../storage/db';
 import { getTodayString, addDays, getDayOfWeekFromYYYYMMDD } from '../utils/dateUtils';
 import { isHabitScheduledForDate } from '../utils/streakUtils';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { getNotificationPreferences } from '../notifications/notificationService';
 
 const PROFILE_ID = 'main_profile';
 const DEFAULT_PROFILE: UserProfile = {
@@ -92,16 +93,6 @@ const getDayScore = (
   };
 };
 
-const toggleNotifications = async (enabled: boolean) => {
-  if (!enabled) return false;
-  if (typeof window === 'undefined' || !("Notification" in window)) {
-    return false;
-  }
-  if (Notification.permission === 'granted') return true;
-  const permission = await Notification.requestPermission();
-  return permission === 'granted';
-};
-
 export const ProfilePage: React.FC = () => {
   const [profile, setProfile] = useState<UserProfile>(DEFAULT_PROFILE);
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
@@ -114,6 +105,7 @@ export const ProfilePage: React.FC = () => {
   const [profileName, setProfileName] = useState('');
   const [profileBio, setProfileBio] = useState('');
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [backupOpen, setBackupOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [accountEmail, setAccountEmail] = useState('');
@@ -334,23 +326,11 @@ export const ProfilePage: React.FC = () => {
           </button>
           {settingsOpen && <div className="p-3 bg-surface-bg/50 flex gap-2"><button onClick={() => void updateSettings({ theme: 'dark' })} className={`flex-1 py-2.5 rounded-xl text-xs font-semibold ${settings.theme === 'dark' ? 'bg-brand text-white' : 'bg-surface-hover text-gray-400'}`}><Moon size={14} className="inline mr-1.5" />Escuro</button><button onClick={() => void updateSettings({ theme: 'light' })} className={`flex-1 py-2.5 rounded-xl text-xs font-semibold ${settings.theme === 'light' ? 'bg-brand text-white' : 'bg-surface-hover text-gray-400'}`}><Sun size={14} className="inline mr-1.5" />Claro</button></div>}
 
-          <button
-            onClick={() => void (async () => {
-              const nextEnabled = !settings.notifications;
-              if (nextEnabled) {
-                const granted = await toggleNotifications(true);
-                if (!granted) {
-                  setMessage('Permita as notificações do navegador para ativá-las.');
-                  return;
-                }
-              }
-              await updateSettings({ notifications: nextEnabled });
-            })()}
-            className="w-full p-3.5 flex items-center justify-between text-sm text-gray-300 hover:bg-surface-hover transition-colors"
-          >
+          <button onClick={() => setNotificationsOpen((value) => !value)} className="w-full p-3.5 flex items-center justify-between text-sm text-gray-300 hover:bg-surface-hover transition-colors">
             <div className="flex items-center gap-3"><Bell size={18} className="text-gray-400" /><span>Notificações</span></div>
-            <div className={`w-9 h-5 rounded-full p-0.5 transition-colors ${settings.notifications ? 'bg-brand' : 'bg-surface-muted'}`}><div className={`w-4 h-4 rounded-full bg-white transition-transform ${settings.notifications ? 'translate-x-4' : ''}`} /></div>
+            <div className="flex items-center gap-2 text-xs text-gray-500">{settings.notifications ? 'Ativadas' : 'Desativadas'}<ChevronRight size={15} className={notificationsOpen ? 'rotate-90 transition-transform' : 'transition-transform'} /></div>
           </button>
+          {notificationsOpen && <NotificationSettings settings={settings} onUpdate={updateSettings} onMessage={setMessage} />}
 
           <button onClick={() => setBackupOpen((value) => !value)} className="w-full p-3.5 flex items-center justify-between text-sm text-gray-300 hover:bg-surface-hover transition-colors"><div className="flex items-center gap-3"><HardDrive size={18} className="text-gray-400" /><span>Backup & Restauração</span></div><ChevronRight size={15} className={backupOpen ? 'rotate-90 transition-transform text-gray-500' : 'text-gray-500'} /></button>
           {backupOpen && <div className="p-3 bg-surface-bg/50 space-y-2"><button onClick={() => void exportBackup()} className="w-full flex items-center justify-between p-3 rounded-xl bg-surface-hover text-xs text-gray-300 hover:text-white"><span className="flex items-center gap-2"><Download size={15} />Exportar backup</span><span className="text-[10px] text-gray-600">.json</span></button><button onClick={() => backupInputRef.current?.click()} className="w-full flex items-center justify-between p-3 rounded-xl bg-surface-hover text-xs text-gray-300 hover:text-white"><span className="flex items-center gap-2"><Upload size={15} />Importar backup</span><span className="text-[10px] text-gray-600">.json</span></button><input ref={backupInputRef} type="file" accept="application/json,.json" className="hidden" onChange={(e) => void importBackup(e.target.files?.[0])} /></div>}
@@ -395,6 +375,47 @@ export const ProfilePage: React.FC = () => {
       {message && <div className="fixed left-1/2 -translate-x-1/2 bottom-20 z-50 px-4 py-2.5 rounded-xl bg-brand text-white text-xs font-semibold shadow-xl">{message}</div>}
     </div>
   );
+};
+
+
+const NotificationSettings: React.FC<{
+  settings: UserSettings;
+  onUpdate: (patch: Partial<UserSettings>) => Promise<void>;
+  onMessage: (message: string) => void;
+}> = ({ settings, onUpdate, onMessage }) => {
+  const prefs = getNotificationPreferences(settings.notificationPreferences);
+  const setPreferences = async (patch: Partial<NotificationPreferences>) => onUpdate({ notificationPreferences: { ...prefs, ...patch } });
+  const enable = async () => {
+    if (!('Notification' in window)) return onMessage('Este navegador não oferece notificações.');
+    const permission = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
+    if (permission !== 'granted') return onMessage('Permita as notificações do navegador para ativá-las.');
+    await onUpdate({ notifications: true });
+    onMessage('Notificações ativadas.');
+  };
+  const items = [
+    { key: 'habits' as const, label: 'Hábitos', timeKey: 'habitsTime' as const, time: prefs.habitsTime, description: 'Lembra dos hábitos pendentes no horário escolhido.' },
+    { key: 'tasks' as const, label: 'Tarefas', timeKey: null, time: '', description: 'Avisa 30 minutos antes de tarefas com horário.' },
+    { key: 'workouts' as const, label: 'Treinos', timeKey: 'workoutsTime' as const, time: prefs.workoutsTime, description: 'Lembra do treino do dia no horário escolhido.' },
+    { key: 'goals' as const, label: 'Metas', timeKey: 'goalsTime' as const, time: prefs.goalsTime, description: 'Lembrete semanal, aos domingos, para acompanhar suas metas.' },
+  ];
+  return <div className="p-3 bg-surface-bg/50 space-y-3 border-t border-surface-border">
+    <div className="rounded-xl bg-brand/5 border border-brand/20 p-3">
+      <p className="text-xs font-semibold text-gray-200">Lembretes inteligentes</p>
+      <p className="text-[10px] text-gray-500 mt-1 leading-relaxed">O Constância avisa sobre o que importa e evita repetir o mesmo lembrete.</p>
+    </div>
+    {!settings.notifications ? <button onClick={() => void enable()} className="w-full button-primary"><Bell size={15} className="inline mr-1.5" />Ativar notificações</button> :
+      <div className="space-y-2">
+        <div className="flex items-center justify-between p-3 rounded-xl bg-surface-hover"><div><p className="text-xs font-semibold text-gray-200">Notificações gerais</p><p className="text-[10px] text-gray-600 mt-0.5">Permissão do navegador concedida</p></div><span className="text-[10px] font-semibold text-brand">ATIVAS</span></div>
+        {items.map(item => <div key={item.key} className="p-3 rounded-xl bg-surface-hover space-y-2">
+          <div className="flex items-center justify-between"><span className="text-xs font-semibold text-gray-200">{item.label}</span>
+            <button type="button" onClick={() => void setPreferences({ [item.key]: !prefs[item.key] } as Partial<NotificationPreferences>)} className={`w-9 h-5 rounded-full p-0.5 transition-colors ${prefs[item.key] ? 'bg-brand' : 'bg-surface-muted'}`}><span className={`block w-4 h-4 rounded-full bg-white transition-transform ${prefs[item.key] ? 'translate-x-4' : ''}`} /></button>
+          </div>
+          <p className="text-[10px] text-gray-600">{item.description}</p>
+          {item.timeKey && <label className="flex items-center justify-between gap-3 text-[10px] text-gray-500"><span>Horário</span><input type="time" value={item.time} onChange={e => void setPreferences({ [item.timeKey!]: e.target.value } as Partial<NotificationPreferences>)} className="bg-[#18181b] border border-surface-border rounded-lg px-2 py-1.5 text-xs text-gray-200 focus:outline-none focus:border-brand" /></label>}
+        </div>)}
+        <button onClick={() => void onUpdate({ notifications: false })} className="w-full py-2 text-[10px] font-semibold text-gray-500 hover:text-red-300">Desativar notificações</button>
+      </div>}
+  </div>;
 };
 
 const ProgressStat: React.FC<{ label: string; value: number }> = ({ label, value }) => (

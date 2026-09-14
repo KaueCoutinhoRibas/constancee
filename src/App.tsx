@@ -14,6 +14,7 @@ import { StorageService } from './storage/db';
 import { getTodayString } from './utils/dateUtils';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
 import { SyncService } from './sync/syncService';
+import { startNotificationScheduler } from './notifications/notificationService';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<TabType>('habits');
@@ -75,6 +76,11 @@ export function App() {
       active = false;
       listener.subscription.unsubscribe();
     };
+  }, []);
+
+  useEffect(() => {
+    const stop = startNotificationScheduler();
+    return stop;
   }, []);
 
   useEffect(() => {

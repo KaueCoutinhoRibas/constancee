@@ -44,6 +44,12 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    const openGoals = () => setActiveTab('goals');
+    window.addEventListener('constancia-open-goals', openGoals);
+    return () => window.removeEventListener('constancia-open-goals', openGoals);
+  }, []);
+
+  useEffect(() => {
     if (!supabase) {
       setAuthLoading(false);
       return;

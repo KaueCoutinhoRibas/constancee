@@ -12,6 +12,7 @@ import {
 } from '../utils/streakUtils';
 import { HabitFormModal } from '../components/habits/HabitFormModal';
 import { HabitHistoryModal } from '../components/habits/HabitHistoryModal';
+import { GoalsSummary } from '../components/goals/GoalsSummary';
 import {
   Plus,
   Check,
@@ -781,6 +782,8 @@ export const HabitsPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      <GoalsSummary onOpen={() => window.dispatchEvent(new CustomEvent('constancia-open-goals'))} />
 
       <HabitFormModal
         isOpen={isFormOpen}

@@ -84,6 +84,15 @@ export interface Goal {
   imageUrl?: string;
   description?: string;
   progress: number;
+  /** Tipo de acompanhamento da meta. */
+  measurement?: 'number' | 'currency' | 'count' | 'days' | 'percentage';
+  /** Valor atual/objetivo para metas mensuráveis. */
+  currentValue?: number;
+  targetValue?: number;
+  unit?: string;
+  /** Faz o progresso ser calculado automaticamente a partir do uso do app. */
+  trackingSource?: 'manual' | 'workouts' | 'habits' | 'tasks';
+  linkedHabitId?: string;
   targetDate?: string;
   createdAt: string;
 }
